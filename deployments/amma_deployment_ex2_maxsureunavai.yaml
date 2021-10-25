@@ -1,0 +1,32 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+       name: appdeploy
+       namespace: mailadmin
+       labels:
+            app: myappdeploy
+spec:
+   replicas: 3
+   minReadySeconds: 30
+   revisionHistoryLimit: 5
+   strategy:
+          type: RollingUpdate
+          rollingUpdate:
+                      maxUnavailable: 0   
+                      maxSurge: 2         
+   selector:
+          matchLabels:
+                    app: myapp
+   template:
+          metadata:
+                 name: apppod
+                 namespace: mailadmin
+                 labels:
+                      app: myapp
+          spec:
+             containers:
+                      - name: app-c1
+                        image: lerndevops/samplepyapp:v1
+                        ports:
+                            - containerPort: 3000

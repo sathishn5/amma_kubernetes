@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+       name: pyapp-pod
+       namespace: mailadmin
+       labels:
+            app: pyapp
+            env: prod
+spec:
+   containers:
+            - name: pyapp-c1
+              image: lerndevops/samplepyapp:v1
+              ports:
+                  - containerPort: 3000  
+   tolerations:
+             - key: zone
+               operator: Equal
+               value: red
+               effect: NoSchedule
+                          

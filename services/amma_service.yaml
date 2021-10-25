@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+       name: nginx-svc
+       namespace: mailadmin
+spec:
+   selector:
+          app: nginx
+          type: singlepod
+   ports:
+       - port: 80
+         targetPort: 80
+   type: ClusterIP

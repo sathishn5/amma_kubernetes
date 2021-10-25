@@ -1,0 +1,38 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+       name: pyapp-pod
+       namespace: mailadmin
+       labels:
+            app: pyapp
+spec:
+   nodeSelector:
+              app: webnodes
+   affinity:
+          podAntiAffinity:
+                        requiredDuringSchedulingIgnoredDuringExecution:
+                               - labelSelector:
+                                             matchExpressions:
+                                                            - {key: app, operator: In, values: [webserver]}
+                                 topologyKey: "kubernetes.io/hostname"
+   containers:
+            - name: pyapp-c1
+              image: lerndevops/samplepyapp:v1
+              ports:
+                  - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+       name: pyapp-svc
+       namespace: mailadmin
+       labels:
+            app: pyapp
+spec:
+   selector:
+          app: pyapp
+   type: NodePort
+   ports:
+       - port: 3000
+         nodePort: 30001     

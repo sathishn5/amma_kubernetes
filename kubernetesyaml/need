@@ -1,0 +1,193 @@
+replicaset first create singlepod then create rs with match expression for singlepod and rs as env:prod - 2 yamls
+deploymentcontroller - deployment -superset of replicaset - superset of pod
+if we create deployment named appdeploy replicaset there will be hash value(hgsdfdqewrwer) i think controller which manages replicaset so replicaset name will be appdeploy-<hash> and pod name will be appdeploy-<rshash>-<5digithash> 
+if we create newer version with lerndevops/samplepyapp:v2 then deployment controller hash will be newhash(ranjklsdfdsfsd) so this is not same as hgsd see above and so replicaset name will be appdeploy-<newhash> ie appdeploy-ranj* above hash and pod name will be appdeploy-<newhash>-<5digithash>
+kubectl get deployment -n mailadmin
+kubectl rollout status deployment appdeploy -n mailadmin --> initially shows as rolled out
+kubectl rollout history deployment appdeploy -n mailadmin --> shows 1 and 2 with changecause
+kubectl expose deployment appdeploy --port=3000 --type=ClusterIP --> this image runs on 3000 port so we are using 3000 port
+appdeploy is the deployment name
+change minReadySeconds: 30 in amma_deployment_ex1.yaml in spec section of deployment
+now in new terminal write while true;do curl <clusterip>;echo -n -e "\n";kubectl get pods -n mailadmin;sleep 2;done
+kubectl set image deployment appdeploy app-c1=lerndevops/samplepyapp:v2 -n mailadmin --record=true
+app-c1 is the container name if we have multi container just specify the container name with the new image if no container also specify container name
+--record=true will have the cause change in kubectl rollout history deployment appdeploy -n mailadmin
+now the image starts changing and prints you have reached app2 and roundrobin basis shows you have reached app1 because still all pods are not changed to new version mix and match of these outputs are seent ie app1 or app2
+so after 30 seconds after the new version pod created ie say appdeploy-<rsnewhash>-<5digithash> reachs 30 seconds next pod will start terminating and new version of another pod is created this process goes on
+kubectl rollout history deployment appdeploy -n mailadmin --> to see the versions and change cause
+kubectl rollout undo deployment appdeploy -n mailadmin --> to revert/undo to older version ie most recent version(n-1) version say if we are in v2 and we came from v1 means it will revert to v1 if we are in v3 and came from v2 means it will revert to v2
+kubectl rollout pause deployment appdeploy -n mailadmin --> to pause the update so eventhough the process of new version 1 pod is created means after 30 s of it there wont be any new version pod created rollout is stopped
+kubectl rollout resume deployment appdeploy -n mailadmin --> to resume the rollout/revert
+
+add below parameters to same yaml file by creating new yaml file for below ie amma_deployment_ex2.yaml
+
+minReadySeconds: 30
+   type: ROllingUpdate
+   rollingUpdate:
+               maxUnavailable: 0
+##means after 30 seconds and if the new version pod is created there should not be any termination of old version p
+od since it need to maintain replicas as 3. so now new version pod is created and total is 4 pods after 30 seconds again new version pod is created now total pods is 5 now 2 older version pods are created so that remaining 3 pods will remain so it always try to maintain 3 pods==our replica
+               maxSurge: 2
+## how many surge pods will be created ie if we have 3 replicas whenever we update to any image there will be new version p
+od created so that new version pod is called surge pod because our older version pod is 3 and this 4th newer version pod is called surge pod again aft
+er 30 seconds one new version pod is created so this is called surge pod. so this parameter means there will be 2 surge pods created after new version
+ pod reaches 30 seconds
+
+need to see maxUnavailable and maxSurge with percentage of values instead of above numbers
+need to set maxUnavailable with any number eg 1 or 2 etc. because we saw 0.
+
+need to see cronjobs with creating pod with containers every 1 sec with quota limits of number of pods
+
+pod placements
+==============
+i did deployments it can be done with normal pod
+kubectl explain deployment.spec.template.spec.affinity   --> has three things
+    1) Nodeaffinity
+    2) PodAffinity
+    3) PodAntiaffinity
+Nodeaffinity:
+           RequiredDuringSchedulingIgnoredDuringExecution means i want briyani that is requirement
+                 correct eg: organization has its office located at westus and easteurope so pods will be placed based on these labels assigned
+           PrefferedDuringSchedulingIgnoredDuringExecution means it can be mutton or chicken briyani but if its mutton means double ok
+                 correct eg: westus is the mainoffice or we can say dc-primary site so assign pods to this nodes which has labels has site as dc-primary on either west us and easteurope prefer the node which has this additional label site as dc-primary
+           weight each node is weighted along with nodeselectorterms and weight i think eg westus+weight - 1+1 - 2(chumma nodeselectorterms did 1 rank for that pod weight is also added with it so eg nodeselectorterms has rank 1 and weight which we gave as 1 is added along with it
+
+1) Steps to check
+label worker1.jana.com as location: westus and site: dr-primary and worker2.jana.com as easteurope
+create this deployment and schedule
+we can see pods assigned to worker1.jana.com as it has location=westus and site as dc-primary in nodes label
+[root@master ~]# kubectl get pods -n mailadmin -o wide
+NAME                            READY   STATUS    RESTARTS   AGE   IP          NODE               NOMINATED NODE   READINESS GATES
+pyapp-deploy-6ffd4d47c9-5wm28   1/1     Running   0          33m   10.44.0.1   worker1.jana.com   <none>           <none>
+pyapp-deploy-6ffd4d47c9-qwvjs   1/1     Running   0          33m   10.44.0.3   worker1.jana.com   <none>           <none>
+pyapp-deploy-6ffd4d47c9-tx4vj   1/1     Running   0          33m   10.44.0.2   worker1.jana.com   <none>           <none>
+then delete deployment and disable label dc-primary from label
+now all pods are assigned either westus or easteurope or run on both nodes mixmatch
+
+[root@master ~]# kubectl get pods -n mailadmin -o wide
+NAME                            READY   STATUS    RESTARTS   AGE   IP          NODE               NOMINATED NODE   READINESS GATES
+pyapp-deploy-6ffd4d47c9-54sgq   1/1     Running   0          40s   10.36.0.2   worker2.jana.com   <none>           <none>
+pyapp-deploy-6ffd4d47c9-nwlk2   1/1     Running   0          40s   10.44.0.1   worker1.jana.com   <none>           <none>
+pyapp-deploy-6ffd4d47c9-vtj8f   1/1     Running   0          40s   10.36.0.1   worker2.jana.com   <none>           <none>
+
+podaffinity
+means if there are web and cache pods or eg an application which has to dump logs both should be running on same node then use podaffinity so that forwebserver it runs on worker1.jana.com means cache pods also runs on worker1.jana.com it wont run on worker2.jana.com because of dependency
+if we have nginx as our webserver and we have created it has deployment it will run its 3 replicas on worker1.jana.com and we have created another application pyapp say eg it is a cache application or a log application and it has to run on same node worker1.jana.com means we can create affinity
+pod affinity will be in pod spec
+
+webserver deployments no changes just create
+pyapp we can create as deployment or create as single pod
+in pod spec of pyapp
+affinity:
+       podAffinity:          -------> same for antiaffinity just change podAntiAffinity
+                 - labelSelector:
+                               matchExpressions:
+                                              - {key: app, operator: In, values:[webserver]} - > so mention label of pod where this pyapp-pod has to
+                   topologyKey: "kubernetes.io/hostname" -> this is the label we can see in kubectl get nodes -n mailadmin --show-labels
+                                                         -> this is unique if we create a node it will automatically create this label and it says
+                                                            hostname means worker1.jana.com
+so now pyapp-pod will also be created in worker1.jana.com
+
+
+Tests i did for podaffinity
+i deleted paypp-pod which i created and placed that in worker2.jana.com in /etc/kubernetes/manifests as staticpod so that it will run on worker2.jana.com after restarting kubelet service(which start,stop,restart pod) and it ran on that node worker2.jana.com so podaffinity didnt work here
+
+podantiaffinity
+means if there are pods which should not run on same nodes eg web and db should not run on same nodes means i can still say it with eg web should be in public zone nodes worker1.jana.com and db should be isolated zone means ie worker2.jana.com for eg we can set pod antiaffinity
+
+same webserver deployments no changes just create
+paypp i create as singlepod
+in pod spec of paypp 
+just used podAntiaffinity all others are sme
+now pyapp-pod all ran in worker2.jana.com and webserver pods ran in worker1.jana.com
+
+[root@master ~]# kubectl get pods -n mailadmin -o wide
+NAME                                READY   STATUS    RESTARTS   AGE   IP          NODE               NOMINATED NODE   READINESS GATES
+pyapp-pod                           1/1     Running   0          12s   10.44.0.1   worker1.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-8fzfx   1/1     Running   0          60m   10.36.0.3   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-cqwcn   1/1     Running   0          60m   10.36.0.2   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-wp6kv   1/1     Running   0          60m   10.36.0.1   worker2.jana.com   <none>           <none>
+
+paypp-pod is antiaffinity pod so it runs on different node
+
+need to 
+create pyapp affinity with replicas instead of singlepod
+[root@master ~]# kubectl get pods -n mailadmin -o wide
+NAME                                READY   STATUS    RESTARTS   AGE    IP          NODE               NOMINATED NODE   READINESS GATES
+pyapp-rs-k2zwt                      1/1     Running   0          38s    10.44.0.2   worker1.jana.com   <none>           <none>
+pyapp-rs-nbltr                      1/1     Running   0          38s    10.44.0.1   worker1.jana.com   <none>           <none>
+pyapp-rs-ttkrp                      1/1     Running   0          38s    10.44.0.3   worker1.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-8fzfx   1/1     Running   0          177m   10.36.0.3   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-cqwcn   1/1     Running   0          177m   10.36.0.2   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-wp6kv   1/1     Running   0          177m   10.36.0.1   worker2.jana.com   <none>           <none>
+
+initially i created webserver deployment with selector labels app:webserver and env:prod we know deployment controller controls replica sets we just c
+reated replicaset pyapp-rs with 3 replicas and added antiaffinity for pod ie webserver and pyapp should not run on same nodes ie we specified webserve
+r as the labelselector in pyapp pod spec.
+
+
+
+create pyapp pod antiaffinity on same node where webserver is running with (staticpod,nodename,nodeselector,nodeaffinity) like that
+static pod answer
+[root@master ~]# kubectl get pods -n mailadmin -o wide
+NAME                                READY   STATUS    RESTARTS   AGE     IP          NODE               NOMINATED NODE   READINESS GATES
+pyapp-pod-worker2.jana.com          1/1     Running   0          37s     10.36.0.4   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-8fzfx   1/1     Running   0          5h17m   10.36.0.3   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-cqwcn   1/1     Running   0          5h17m   10.36.0.2   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-wp6kv   1/1     Running   0          5h17m   10.36.0.1   worker2.jana.com   <none>           <none>
+pyapp-pod is podaffinity mentioned not to run on webserver running node but if we kept static pod in same webserver node it runs
+nodename answer
+[root@master ~]# kubectl get pods -n mailadmin -o wide
+NAME                                READY   STATUS    RESTARTS   AGE     IP          NODE               NOMINATED NODE   READINESS GATES
+pyapp-pod                           1/1     Running   0          13s     10.36.0.4   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-8fzfx   1/1     Running   0          5h58m   10.36.0.3   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-cqwcn   1/1     Running   0          5h58m   10.36.0.2   worker2.jana.com   <none>           <none>
+webserver-deploy-58b9d8fd67-wp6kv   1/1     Running   0          5h58m   10.36.0.1   worker2.jana.com   <none>           <none>
+i specified paypp-pod with pod affinity to webserver and it should not run on worker2.jana.com but i specified nodename and it ran on that node so overrides
+nodeselector answer
+pyapp-pod with podaffinity not to run on webserver running node i labeled worker2.jana.com to app: webnodes and specified nodeSelector in pyapp-pod spec to label as app: webnodes it didnt run there
+
+message
+=======
+ Warning  FailedScheduling  39s   default-scheduler  0/3 nodes are available: 1 node(s) didn't match Pod's node affinity/selector, 1 node(s) didn't match pod anti-affinity rules, 1 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.
+=======
+
+and pyapp-pod pod was in pending state and didnt run i changed label of nodes of worker1.jana.com to app: webnodes and specified in pod spec as nodeSelector to app: webnodes and it ran
+
+create pyapp pods with different matchexpressions like NOTIN ie create webserver(http)pod with prod environment and create webserver(nginx)pod with dev environment and use correct selectors for this to choose
+
+
+Do you know
+jobs and cronjobs has pod status has completed when the job is completed
+pod affinity or pod antiaffinity is specified in pod spec
+
+create pyapp pod antiaffinity on same node where webserver is running with (staticpod,nodename,nodeselector,nodeaffinity) like that
+
+Oct 21 21:03:14 worker2.jana.com kubelet[91085]: E1021 21:03:14.801639   91085 file.go:187] "Could not process manifest file" err="/etc/kubernetes/ma>
+
+above was the error message when i kept amma_pod_podaffinity_ex1.yaml which has replicaset with pod affinity to webserver which was running on worker2.jana.com why i received this error need to see i think because master node is 1.21 and worker node versions are 1.22
+
+create pyapp pods with different matchexpressions like NOTIN ie create webserver(http)pod with prod environment and create webserver(nginx)pod with dev environment and use correct selectors for this to choose
+
+pod healing
+need to check with singlepod by providing less cpu and memory and check if pod is failing and restarting and do the same with single replicaset to confirm only if replicaset does this restarting
+only container gets restarted pod will just be in pending state and server traffic only if container is listening on port and pod will show in ready state only if container port is listening this we have came across readinessprobe i think
+
+
+Taints
+[root@master ~]# kubectl describe node master | grep -i taints
+Taints:             node-role.kubernetes.io/master:NoSchedule
+[root@master ~]# kubectl describe node worker1 | grep -i taints
+Taints:             <none>
+[root@master ~]# kubectl describe node worker2 | grep -i taints
+Taints:             <none>
+
+
+jobs and cronjobs has pod status has completed when the job is completed
+
+
+Suppose there are 2 worker nodes and 1 node went down how to clear its entries as we could see in kubectl get nodes
+cluster upgrade?
+static pod overrides pod antiaffinity
+nodename overrides pod antiaffinity
+does master node election happens

@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+       name: nginxpod-nodeselector
+       namespace: mailadmin
+       labels: 
+            app: pyapp 
+            env: prod
+spec:
+   nodeSelector:
+              env: prod
+   containers:
+            - name: nginx-c1
+              image: lerndevops/samplepyapp:v1

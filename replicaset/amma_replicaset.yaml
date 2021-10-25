@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+       name: nginx-rs
+       namespace: mailadmin
+       labels:
+            app: nginx-4noders
+            env: prod
+spec:
+    replicas: 4
+    selector:
+           matchExpressions:
+                          - {key: env, operator: In, values: [qa,prod,sit]}
+                          - {key: env, operator: NotIn, values: [qa,sit]}
+    template:
+           metadata:
+                  name: nginx-podrs
+                  namespace: mailadmin
+                  labels:
+                       env: prod
+           spec:
+              containers:
+                       - name: nginxc1
+                         image: nginx
+                         ports:
+                             - containerPort: 80
+                         volumeMounts:
+                               - name: nginx-data
+                                 mountPath: /usr/share/nginx/html
+              volumes:
+                    - name: nginx-data
+                      hostPath:
+                          path: /data
+---
+apiVersion: v1
+kind: Service
+metadata:
+       name: nginxsvc
+       namespace: mailadmin
+       labels:
+            svc: nginxsvc1
+            env: prod
+spec:
+   selector:
+          app: nginxpod
+          env: prod
+   type: NodePort
+   ports:
+       - port: 80
+         nodePort: 30000 

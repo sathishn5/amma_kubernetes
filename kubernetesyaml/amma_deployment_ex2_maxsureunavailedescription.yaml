@@ -1,0 +1,36 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+       name: appdeploy
+       namespace: mailadmin
+       labels:
+            app: myappdeploy
+spec:
+   replicas: 3
+   minReadySeconds: 30
+   type: ROllingUpdate
+   rollingUpdate:
+               maxUnavailable: 0   
+##means after 30 seconds and if the new version pod is created there should not be any termination of old version p
+od since it need to maintain replicas as 3. so now new version pod is created and total is 4 pods after 30 seconds again new version pod is created now total pods is 5 now 2 older version pods are created so that remaining 3 pods will remain so it always try to maintain 3 pods==our replica
+               maxSurge: 2         
+## how many surge pods will be created ie if we have 3 replicas whenever we update to any image there will be new version p
+od created so that new version pod is called surge pod because our older version pod is 3 and this 4th newer version pod is called surge pod again aft
+er 30 seconds one new version pod is created so this is called surge pod. so this parameter means there will be 2 surge pods created after new version
+ pod reaches 30 seconds
+   selector:
+          matchLabels:
+                    app: myapp
+   template:
+          metadata:
+                 name: apppod
+                 namespace: mailadmin
+                 labels:
+                      app: myapp
+          spec:
+             containers:
+                      - name: app-c1
+                        image: lerndevops/samplepyapp:v1
+                        ports:
+                            - containerPort: 3000

@@ -1,0 +1,26 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+       name: jobs-file-copy
+       namespace: mailadmin
+spec:
+   backoffLimit: 4
+   template:
+          metadata:
+                 name: jobs-file-copy-pod
+                 namespace: mailadmin
+          spec:
+             containers:
+                      - name: jobs-file-copy-c1
+                        image: centos
+                        command: ["/bin/sh", "-c", "for i in `seq 1 10`;do echo $i >> /data/c.txt;sleep 10;done"]
+                        volumeMounts:
+                                   - name: centos-data
+                                     mountPath: /data
+             restartPolicy: Never          
+             volumes:
+                   - name: centos-data
+                     hostPath:
+                         path: /data
+                         type: DirectoryOrCreate

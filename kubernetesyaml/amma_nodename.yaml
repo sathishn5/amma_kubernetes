@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+       name: pyapp-deploy
+       namespace: mailadmin
+       labels:
+            app: pyapp
+            env: prod
+spec:
+   replicas: 2
+   selector:
+          matchLabels:
+                    app: pyapp
+          matchExpressions:
+                          - {key: env, operator: In, values: [qa,prod,sit]}
+                          - {key: env, operator: NotIn, values: [qa,sit]}
+   template:
+          metadata:
+                 name: pyapp-pod
+                 namespace: mailadmin
+                 labels:
+                      app: pyapp
+                      env: prod
+          spec:
+             nodeName: worker2.jana.com
+             containers:
+                      - name: pyapp-c1
+                        image: lerndevops/samplepyapp:v1
+                        ports:
+                            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+       name: pyapp-svc
+       namespace: mailadmin
+spec:
+   selector:
+          app: pyapp
+          env: prod
+   type: NodePort
+   ports:
+       - port: 30000 

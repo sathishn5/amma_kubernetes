@@ -1,0 +1,27 @@
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+       name: pyapp-rs
+       namespace: mailadmin
+       labels:
+            app: pyapp
+spec:
+   replicas: 3
+   selector:
+          matchExpressions:
+                         - {key: env,operator: In,values: [qa,prod,sit]}
+                         - {key: env,operator: NotIn,values: [qa,sit]}
+   template:
+          metadata:
+                 name: singlepod-with-service
+                 namespace: mailadmin
+                 labels:
+                      env: prod
+          spec:
+             containers:
+                      - name: pyapp-c1
+                        image: lerndevops/samplepyapp:v1
+                        ports:
+                            - containerPort: 3000
+               

@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+       name: cronjob-print-text
+       namespace: mailadmin
+spec:
+   schedule: "* */1 * * *"
+   jobTemplate:
+             spec:
+                template:
+                       metadata:
+                              name: cronjob-print-pod
+                              namespace: mailadmin
+                       spec:
+                          containers:
+                                   - name: cronjob-c1
+                                     image: centos
+                                     command: ["/bin/sh", "-c", "echo Welcome from kubernetes Cluster"]
+                          restartPolicy: OnFailure 

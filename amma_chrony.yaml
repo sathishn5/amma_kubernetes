@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+       name: chrony-pod
+       namespace: mailadmin
+spec:
+   containers:
+            - name: chrony-c1
+              image: geoffh1977/chrony
+              env:
+                - name: NTP_SERVER
+                  value: pool.ntp.org
+                - name: ALLOW_CIDR
+                  value: 0.0.0.0/0
+              ports:
+                  - containerPort: 123
+---
+apiVersion: v1
+kind: Service
+metadata:
+       name: chrony-svc
+       namespace: mailadmin
+spec:
+   selector:
+          app: chrony
+          env: homelab
+   type: NodePort
+   ports:
+       - port: 30123
+         protocol: TCP

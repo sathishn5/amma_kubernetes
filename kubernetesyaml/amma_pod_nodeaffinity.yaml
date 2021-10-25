@@ -1,0 +1,42 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+       name: pyapp-pod
+       namespace: mailadmin
+       labels:
+            app: pyapp
+            env: prod
+spec:
+   affinity:
+          nodeAffinity:
+                     requiredDuringSchedulingIgnoredDuringExecution:
+                              nodeSelectorTerms:
+                                     - matchExpressions:
+                                                      - {key: location, operator: In, values: [westus]}
+                     preferredDuringSchedulingIgnoredDuringExecution:
+                       - weight: 1
+                         preference:
+                                matchExpressions:	
+                                               - {key: site, operator: In, values: [dr-primary]}
+
+   containers:
+            - name: pyapp-c1
+              image: lerndevops/samplepyapp:v1
+              ports:
+                  - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+       name: pyapp-svc
+       namespace: mailadmin
+spec:
+   selector:
+          app: pyapp
+          env: prod
+   type: NodePort
+   ports:
+       - port: 3000
+         nodePort: 30003
+     
